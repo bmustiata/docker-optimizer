@@ -1,6 +1,6 @@
 from typing import List
 
-import dockerfile
+import dockerfile  # type: ignore
 import click
 
 
@@ -44,8 +44,10 @@ def main(dockerfile_in_name: str, dockerfile_out_name: str) -> None:
     for optimization in optimizations:
         commands = optimization(commands)
 
-    for command in commands:
-        print(f"{command.cmd} {' '.join(command.value)}")
+    with open(dockerfile_out_name, 'w', encoding='utf-8') as f:
+        f.write("# compiled by docker-optimizer")
+        for command in commands:
+            f.write(f"{command.cmd} {' '.join(command.value)}\n")
 
 
 if __name__ == '__main__':

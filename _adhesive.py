@@ -2,7 +2,7 @@ import germanium_py_exe  # type: ignore
 
 
 germanium_py_exe.pipeline({
-    "repo": "git@github.com:bmustiata/docker_optimizer.git",
+    "repo": "git@github.com:bmustiata/docker-optimizer.git",
     "binaries": {
         "name": "Python 3.7 on Linux x64",
         "platform": "python:3.7",
