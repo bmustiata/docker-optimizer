@@ -45,9 +45,18 @@ def main(dockerfile_in_name: str, dockerfile_out_name: str) -> None:
         commands = optimization(commands)
 
     with open(dockerfile_out_name, 'w', encoding='utf-8') as f:
-        f.write("# compiled by docker-optimizer")
+        f.write("# compiled by docker-optimizer\n"
+                "# https://github.com/bmustiata/docker-optimizer\n")
         for command in commands:
-            f.write(f"{command.cmd} {' '.join(command.value)}\n")
+            if command.cmd in {"entrypoint"}:
+                command_value_strings = [repr(it) for it in command.value]
+                command_value = f"[{', '.join(command_value_strings)}]"
+            elif command.cmd in {"env"}:
+                command_value = " ".join([repr(it) for it in command.value])
+            else:
+                command_value = " ".join(command.value)
+
+            f.write(f"{command.cmd} {command_value}\n")
 
 
 if __name__ == '__main__':
