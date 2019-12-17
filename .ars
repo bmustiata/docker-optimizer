@@ -1,0 +1,4 @@
+arg0: docker_optimizer
+docker_optimizer: true
+templates:
+- gbs/init
