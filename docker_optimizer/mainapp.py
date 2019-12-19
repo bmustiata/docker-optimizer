@@ -1,16 +1,18 @@
-from typing import List
 import json
+from typing import List
 
-import dockerfile  # type: ignore
 import click
+import dockerfile  # type: ignore
 
 
 class DockerCommand:
     def __init__(self,
                  *,
+                 original: str,
                  cmd: str,
                  flags: List[str],
                  value: List[str]) -> None:
+        self.original = original
         self.cmd = cmd
         self.flags = list(flags)
         self.value = list(value)
@@ -22,12 +24,34 @@ def optimize_multiple_runs(commands: List[DockerCommand]) -> List[DockerCommand]
     last_command = None
     for command in commands:
         new_command = DockerCommand(
+            original=command.original,
             cmd=command.cmd,
             flags=command.flags,
             value=command.value)
 
         if last_command and last_command.cmd == 'run' and command.cmd == 'run':
             last_command.value.append("&&")
+            last_command.value.extend(command.value)
+            continue
+
+        last_command = new_command
+        result.append(new_command)
+
+    return result
+
+
+def optimize_env_variables(commands: List[DockerCommand]) -> List[DockerCommand]:
+    result: List[DockerCommand] = []
+
+    last_command = None
+    for command in commands:
+        new_command = DockerCommand(
+            original=command.original,
+            cmd=command.cmd,
+            flags=command.flags,
+            value=command.value)
+
+        if last_command and last_command.cmd == 'env' and command.cmd == 'env':
             last_command.value.extend(command.value)
             continue
 
@@ -55,7 +79,8 @@ def optimize_docker_commands(commands: List[DockerCommand]) -> List[DockerComman
     :return:
     """
     optimizations = [
-        optimize_multiple_runs
+        optimize_multiple_runs,
+        optimize_env_variables,
     ]
 
     for optimization in optimizations:
@@ -77,10 +102,9 @@ def write_docker_commands(output_stream, commands: List[DockerCommand]) -> None:
 
     for command in commands:
         if command.cmd in {"entrypoint", "cmd"}:
-            command_value_strings = [json.dumps(it) for it in command.value]
-            command_value = f"[{', '.join(command_value_strings)}]"
+            command_value = parse_array(command)
         elif command.cmd in {"env"}:
-            command_value = " ".join(command.value)
+            command_value = parse_env(command)
         else:
             command_value = " ".join(command.value)
 
@@ -89,6 +113,21 @@ def write_docker_commands(output_stream, commands: List[DockerCommand]) -> None:
             command_flags = f" {command_flags}"
 
         output_stream.write(f"{command.cmd}{command_flags} {command_value}\n")
+
+
+def parse_env(command: DockerCommand) -> str:
+    variables = []
+
+    for i in range(0, len(command.value), 2):
+        variables.append(f"{command.value[i]}={command.value[i + 1]}")
+
+    return " ".join(variables)
+
+
+def parse_array(command: DockerCommand) -> str:
+    command_value_strings = [json.dumps(it) for it in command.value]
+    command_value = f"[{', '.join(command_value_strings)}]"
+    return command_value
 
 
 if __name__ == '__main__':

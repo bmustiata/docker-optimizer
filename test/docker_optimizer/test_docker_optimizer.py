@@ -15,14 +15,26 @@ class TestDockerOptimizer(unittest.TestCase):
     def test_COPY_command(self):
         self._parse_content("COPY --chown=100:100 /tmp /tmp", "copy --chown=100:100 /tmp /tmp")
 
-    def test_ENV_command(self):
-        self._parse_content('ENV AA "A B"', 'env AA "A B"')
-
     def test_ENTRYPOINT_command(self):
         self._parse_content('ENTRYPOINT ["/a", "b"]', 'entrypoint ["/a", "b"]')
 
     def test_RUN_command_collapse(self):
         self._parse_content('RUN this\nRUN that', 'run this && that')
+
+    def test_ENV_command(self):
+        self._parse_content('ENV AA "A B"', 'env AA="A B"')
+
+    def test_ENV_equals(self):
+        self._parse_content("ENV LE_AUTO_SUDO=", "env LE_AUTO_SUDO=")
+
+    def test_ENV_equals_value(self):
+        self._parse_content("ENV LE_AUTO_SUDO=sudo", "env LE_AUTO_SUDO=sudo")
+
+    def test_ENV_equals_multiple_values(self):
+        self._parse_content('ENV A="a b" B= C=c', 'env A="a b" B= C=c')
+
+    def test_ENV_multiple_values_collapse(self):
+        self._parse_content('ENV A="a b"\nENV B=\nENV C c', 'env A="a b" B= C=c')
 
     def _parse_content(
             self,
