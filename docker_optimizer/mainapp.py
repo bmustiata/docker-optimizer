@@ -1,5 +1,5 @@
+from typing import List, Optional
 import json
-from typing import List
 
 import click
 import dockerfile  # type: ignore
@@ -21,7 +21,7 @@ class DockerCommand:
 def optimize_multiple_runs(commands: List[DockerCommand]) -> List[DockerCommand]:
     result: List[DockerCommand] = []
 
-    last_command = None
+    last_command: Optional[DockerCommand] = None
     for command in commands:
         new_command = DockerCommand(
             original=command.original,
@@ -30,8 +30,14 @@ def optimize_multiple_runs(commands: List[DockerCommand]) -> List[DockerCommand]
             value=command.value)
 
         if last_command and last_command.cmd == 'run' and command.cmd == 'run':
+            if last_command.value[0] != '(':
+                last_command.value.insert(0, '(')
+                last_command.value.append(')')
+
             last_command.value.append("&&")
+            last_command.value.append("(")
             last_command.value.extend(command.value)
+            last_command.value.append(")")
             continue
 
         last_command = new_command

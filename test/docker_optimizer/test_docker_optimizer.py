@@ -19,7 +19,10 @@ class TestDockerOptimizer(unittest.TestCase):
         self._parse_content('ENTRYPOINT ["/a", "b"]', 'entrypoint ["/a", "b"]')
 
     def test_RUN_command_collapse(self):
-        self._parse_content('RUN this\nRUN that', 'run this && that')
+        self._parse_content('RUN this\nRUN that', 'run ( this ) && ( that )')
+
+    def test_RUN_command_with_or_collapses_correctly(self):
+        self._parse_content('RUN this\nRUN that || something-else', 'run ( this ) && ( that || something-else )')
 
     def test_ENV_command(self):
         self._parse_content('ENV AA "A B"', 'env AA="A B"')
